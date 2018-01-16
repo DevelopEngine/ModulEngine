@@ -1,0 +1,11 @@
+<Project>
+    <PropertyGroup>
+        <Authors>achapman</Authors>
+        <Copyright>© Alistair Chapman 2017</Copyright>
+        <PackageTags>developengine;asp.net;core;extensibility;plugins;modules</PackageTags>
+        <RepositoryUrl>https://github.com/DevelopEngine/ModulEngine</RepositoryUrl>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseUrl>https://raw.githubusercontent.com/DevelopEngine/ModulEngine/master/LICENSE</PackageLicenseUrl>
+        <PackageProjectUrl>https://github.com/DevelopEngine/ModulEngine</PackageProjectUrl>
+    </PropertyGroup>
+</Project>
