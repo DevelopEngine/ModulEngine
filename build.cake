@@ -1,4 +1,4 @@
-#load nuget:?package=DevelopEngine.Cake
+#load nuget:?package=DevelopEngine.Cake&version=0.1.2
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -25,5 +25,8 @@ var frameworks = new List<string> { "netstandard2.0" };
 Task("Default")
 .IsDependentOn("Post-Build")
 .IsDependentOn("NuGet");
+
+Task("CI")
+.IsDependentOn("Publish");
 
 RunTarget(target);
