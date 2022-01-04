@@ -1,4 +1,4 @@
-#load nuget:?package=DevelopEngine.Cake&version=0.0.0-preview.0.9&prerelease
+#load nuget:?package=DevelopEngine.Cake&version=0.0.0-preview.0.10&prerelease
 
 ///////////////////////////////////////////////////////////////////////////////
 // ARGUMENTS

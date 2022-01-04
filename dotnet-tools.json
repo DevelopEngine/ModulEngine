@@ -3,7 +3,7 @@
     "isRoot": true,
     "tools": {
       "cake.tool": {
-        "version": "0.38.5",
+        "version": "1.3.0",
         "commands": [
           "dotnet-cake"
         ]
@@ -15,7 +15,7 @@
         ]
       },
       "minver-cli": {
-        "version": "2.3.0",
+        "version": "2.5.0",
         "commands": [
           "minver"
         ]
