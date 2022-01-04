@@ -37,11 +37,40 @@ namespace ModulEngine
         }
     }
 
+    public enum RegistrationType
+    {
+        None,
+        Singleton,
+        Scoped,
+        Transient
+    }
+
     public class PluginBuilder<TPlugin> where TPlugin : IPlugin{
         private Action<string> _loggerFunc;
 
         private List<Type> _sharedTypes {get;set;} = new List<Type>{typeof(TPlugin), typeof(IServiceCollection), typeof(ILogger), typeof(ILogger<>)};
-        
+        private List<Type> ForceLoadTypes { get; set; } = new List<Type>();
+        private RegistrationType _defaultRegistrationType;
+
+        private RegistrationType DefaultRegistrationType
+        {
+            get => _defaultRegistrationType;
+            set
+            {
+                _defaultRegistrationType = value;
+                Register = _defaultRegistrationType switch {
+                    RegistrationType.None => (collection, type) => collection,
+                    RegistrationType.Singleton => (services, type) => services.AddSingleton(type),
+                    RegistrationType.Scoped => (services, type) => services.AddScoped(type),
+                    RegistrationType.Transient => (services, type) => services.AddTransient(type),
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+            }
+        }
+
+        private Func<IServiceCollection, Type, IServiceCollection> Register = (collection, type) =>
+            collection.AddSingleton(type);
+
 
         private List<string> SearchPaths {get;set;} = new List<string>();
 
@@ -98,6 +127,21 @@ namespace ModulEngine
             return this;
         }
 
+        public PluginBuilder<TPlugin> AlwaysLoad<TService>() {
+            ForceLoadTypes.Add(typeof(TService));
+            return this;
+        }
+
+        public PluginBuilder<TPlugin> AlwaysLoad(params Type[] types) {
+            ForceLoadTypes.AddRange(types);
+            return this;
+        }
+
+        public PluginBuilder<TPlugin> UseDefaultRegistration(RegistrationType registrationType) {
+            DefaultRegistrationType = registrationType;
+            return this;
+        }
+
         private IEnumerable<PluginLoader> BuildLoaders(string pluginsDir) {
             var loaders = new List<PluginLoader>();
             // create plugin loaders
@@ -128,7 +172,12 @@ namespace ModulEngine
 
         public IServiceCollection BuildServices(IServiceCollection services = null, IConfiguration config = null, bool disableLoaderInjection = true) {
             services ??= new ServiceCollection();
-            config ??= services.BuildServiceProvider().GetService<IConfiguration>();
+            try {
+                config ??= services.BuildServiceProvider().GetService<IConfiguration>();
+            }
+            catch {
+                //ignored
+            }
             var provider = disableLoaderInjection ? new ServiceCollection() : services;
             var loaders = BuildLoaders();
             foreach (var loader in loaders)
@@ -143,6 +192,11 @@ namespace ModulEngine
                     }
                 } else {
                     _loggerFunc?.Invoke($"Found no compatible plugin types in {ass.FullName}");
+                }
+
+                if (ForceLoadTypes.Any()) {
+                    // current loader may not contain any force-load-enabled types
+                    services = ForceLoadTypes.Where(flt => types.Contains(flt)).Aggregate(services, (current, forceLoadType) => Register(current, forceLoadType));
                 }
             }
             var allLoaders = provider.BuildServiceProvider().GetServices<TPlugin>();
