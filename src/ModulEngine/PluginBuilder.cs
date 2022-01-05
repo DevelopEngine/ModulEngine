@@ -59,17 +59,17 @@ namespace ModulEngine
             {
                 _defaultRegistrationType = value;
                 Register = _defaultRegistrationType switch {
-                    RegistrationType.None => (collection, type) => collection,
-                    RegistrationType.Singleton => (services, type) => services.AddSingleton(type),
-                    RegistrationType.Scoped => (services, type) => services.AddScoped(type),
-                    RegistrationType.Transient => (services, type) => services.AddTransient(type),
+                    RegistrationType.None => (collection, type, impl) => collection,
+                    RegistrationType.Singleton => (services, type, impl) => services.AddSingleton(type, impl),
+                    RegistrationType.Scoped => (services, type, impl) => services.AddScoped(type, impl),
+                    RegistrationType.Transient => (services, type, impl) => services.AddTransient(type, impl),
                     _ => throw new ArgumentOutOfRangeException()
                 };
             }
         }
 
-        private Func<IServiceCollection, Type, IServiceCollection> Register = (collection, type) =>
-            collection.AddSingleton(type);
+        private Func<IServiceCollection, Type, Type, IServiceCollection> Register = (collection, type, implementationType) =>
+            collection.AddSingleton(type, implementationType);
 
 
         private List<string> SearchPaths {get;set;} = new List<string>();
@@ -166,7 +166,7 @@ namespace ModulEngine
         }
 
         public IEnumerable<PluginLoader> BuildLoaders() {
-            var loaders = SearchPaths.SelectMany(sp => BuildLoaders(sp));
+            var loaders = SearchPaths.Select(sp => Path.IsPathRooted(sp) ? sp : Path.GetFullPath(sp) ).SelectMany(sp => BuildLoaders(sp));
             return loaders;
         }
 
@@ -196,7 +196,13 @@ namespace ModulEngine
 
                 if (ForceLoadTypes.Any()) {
                     // current loader may not contain any force-load-enabled types
-                    services = ForceLoadTypes.Where(flt => types.Contains(flt)).Aggregate(services, (current, forceLoadType) => Register(current, forceLoadType));
+                    // ReSharper disable LoopCanBeConvertedToQuery
+                    foreach (var flt in ForceLoadTypes) {
+                        foreach (var implType in types.Where(t => IsCompatible(flt, t))) {
+                            services = Register(services, flt, implType);
+                        }
+                    }
+                    // ReSharper restore LoopCanBeConvertedToQuery
                 }
             }
             var allLoaders = provider.BuildServiceProvider().GetServices<TPlugin>();
@@ -209,6 +215,10 @@ namespace ModulEngine
 
         internal static bool IsPlugin(Type t) {
             return typeof(TPlugin).IsAssignableFrom(t) && !t.IsAbstract;
+        }
+
+        internal static bool IsCompatible(Type registration, Type implementation) {
+            return registration.IsAssignableFrom(implementation) && !implementation.IsAbstract;
         }
     }
 }
