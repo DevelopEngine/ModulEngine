@@ -133,6 +133,7 @@ namespace ModulEngine
         }
 
         public PluginBuilder<TPlugin> AlwaysLoad(params Type[] types) {
+            _sharedTypes.AddRange(types);
             ForceLoadTypes.AddRange(types);
             return this;
         }
